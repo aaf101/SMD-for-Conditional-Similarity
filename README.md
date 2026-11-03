@@ -63,4 +63,4 @@ For the supplied run, maximum regret is approximately **0.0783** after 1,000 ite
 
 Please cite the author, paper title, repository URL, and version **v1.0.0** when referring to these replication materials. A machine-readable citation is provided in `CITATION.cff`.
 
-OpenAI Codex assisted with manuscript preparation, mathematical exposition, and implementation and execution of this example, including its data-derived plots and table. The manuscript includes the detailed declaration and figure-caption disclosures. The author reviewed and verified the text, arguments, references, code, and results and retains responsibility for the work.
+OpenAI Codex assisted with the production of this code.

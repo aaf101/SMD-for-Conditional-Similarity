@@ -50,7 +50,7 @@ The script checks conditional size, quadrature stability, the pointwise power en
 
 The PDF figures are separate vector files suitable for manuscript submission. PNGs are 300-dpi previews. The LaTeX table is editable text.
 
-For the supplied run, maximum regret is approximately **0.0783096872** after 1,000 iterations, compared with **0.0818851224** for the initial best response and **0.1227547573** for the equal-tail test. The numerical dual lower bound is **0.0769076449**. Increasing quadrature order changes computed powers by about `7e-15`, and the conditional-size error is about `1.1e-16`.
+For the supplied run, maximum regret is approximately **0.0783** after 1,000 iterations, compared with **0.0819** for the initial best response and **0.1228** for the equal-tail test. The numerical dual lower bound is **0.0769**. Increasing quadrature order changes computed powers by about `7e-15`, and the conditional-size error is about `1.1e-16`.
 
 ## Repository contents and citation
 

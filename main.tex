@@ -1,493 +1,180 @@
-\documentclass{article}
-\usepackage[english]{babel}
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage{johd}
-\usepackage{amsthm}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{enumerate}
-\usepackage{natbib}
-\usepackage{appendix}
-\usepackage{algorithm}
-\usepackage{algpseudocode}
-\usepackage{caption}
-
-\makeatletter
-\newenvironment{breakablealgorithm}
-  {% \begin{breakablealgorithm}
-   \begin{center}
-     \refstepcounter{algorithm}%
-     \hrule height.8pt depth0pt \kern2pt%
-     \renewcommand{\caption}[2][\relax]{%
-       {\raggedright\textbf{\ALG@name~\thealgorithm} ##2\par}%
-       \ifx\relax##1\relax
-         \addcontentsline{loa}{algorithm}{\protect\numberline{\thealgorithm}##2}%
-       \else
-         \addcontentsline{loa}{algorithm}{\protect\numberline{\thealgorithm}##1}%
-       \fi
-       \kern2pt\hrule\kern2pt
-     }%
-  }
-  {% \end{breakablealgorithm}
-     \kern2pt\hrule\relax%
-   \end{center}
-  }
-\makeatother
-
-
-\newcommand{\ts}{\Tilde{s}}
-
-\theoremstyle{definition}
-\newtheorem{assumption}{Assumption}
-\newtheorem{definition}{Definition}
-\newtheorem{corr}{Corollary}
-
-\theoremstyle{plain}
-\newtheorem{prop}{Proposition}
-\newtheorem{lemma}{Lemma}
-
-\theoremstyle{remark}
-\newtheorem{remark}{Remark}
-
-\title{Stochastic Mirror Descent Applied to Conditionally Similar Tests}
-\author{Andr\'es Aradillas Fern\'andez}
-\date{\today}
+\usepackage[english]{babel}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{newtxtext,newtxmath}
+\usepackage{microtype}
+\usepackage{graphicx,booktabs,algorithm,algpseudocode}
+\usepackage[round,authoryear]{natbib}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\DeclareMathOperator{\Cov}{Cov}
+\DeclareMathOperator{\Var}{Var}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\CS}{\mathcal{C}_{\alpha}}
+\newcommand{\Reg}{\mathcal{R}}
+\newcommand{\TV}{d_{\mathrm{TV}}}
+\setlength{\bibsep}{3pt}
+\title{Minimax regret for conditionally similar tests}
+\author{Andr\'es Aradillas Fern\'andez\textsuperscript{a}\thanks{Corresponding author. Email: \href{mailto:aradilla@mit.edu}{aradilla@mit.edu}.}\\[4pt] \small\textsuperscript{a}Department of Economics, Massachusetts Institute of Technology\\ \small 77 Massachusetts Avenue, Building E52-300\\ \small Cambridge, MA 02139, United States}
+\date{}
 
 \begin{document}
 \maketitle
+\begin{abstract}
+We construct approximately minimax-regret tests in a scalar Gaussian instrumental-variables experiment. Existing computational approaches maximize power against a fixed alternative distribution, including a mixture representing weighted average power, while optimizing over null distributions to enforce size. Conditional similarity enforces size within each best response, allowing us to optimize weights over alternatives to minimize worst-case power regret. Stochastic mirror descent and averaging yield finite-iteration guarantees with exact conditional similarity. We establish bounds for exact and simulated powers, control discretization error in total variation, and illustrate the procedure numerically.
+\end{abstract}
+\noindent\textit{Keywords:} Conditional similarity; minimax regret; weak instruments; stochastic mirror descent.\\
+\textit{JEL classification:} C12, C14.
 
 \section{Introduction}
 
-\cite{aradillas2025approximate} use stochastic mirror descent (SMD) to obtain approximately optimal hypothesis tests in settings where the null hypothesis contains finitely many distributions and the alternative hypothesis contains a single distribution. Their algorithm can be viewed as a variation of the algorithm proposed by \cite{elliott2015nearly}, with finite-iteration theoretical guarantees. This note considers whether the same SMD logic can be used to obtain an approximately minimax-regret-optimal test within the class of conditionally similar tests.
+Conditional similarity controls rejection probabilities in the presence of nuisance parameters but generally leaves many tests to choose from. We select among these tests by minimizing their largest power loss relative to the conditionally similar power envelope. This criterion is useful when instruments may be weak and no single test maximizes power at every alternative.
 
-\section{Conditional Similarity}
+Our contribution is to use conditional size control to optimize power regret across alternatives. \citet{elliott2015nearly}, henceforth EMW, fix a weighting distribution over alternatives; weighted average power then equals power against a single mixture distribution. Their numerical search concerns a least-favorable distribution under the null. \citet{aradillas2025approximate} develop stochastic mirror descent for the corresponding finite-null, single-alternative problem. This formulation also accommodates a fixed alternative mixture representing a weighted-average-power criterion.
 
-A characterization of admissible similar tests is given in \cite{olea2020admissible}. Relatedly, \cite{andrews2016conditional} studies conditional linear combination (CLC) tests for weakly identified models. These tests impose conditional similarity and use a minimax-regret criterion within a restricted class of tests.
+We instead impose conditional similarity within every best response. This removes the need to optimize null weights to enforce size and allows the iterative search to focus on alternatives at which power falls furthest below its conditionally similar envelope. Weighted average power remains the best-response objective, but its weights are updated to solve a minimax-regret problem rather than specified in advance as the final power criterion. Our result concerns the conditionally similar class in the Gaussian experiment; it does not claim to dominate EMW's procedures over the unrestricted class of level-$\alpha$ tests.
 
-Consider the Gaussian weak-IV experiment
-\[\begin{pmatrix}\hat{\delta}\\\hat{\pi}\end{pmatrix} \sim N\left(\begin{pmatrix}\pi\beta\\\pi\end{pmatrix},\Sigma\right).\]
-We wish to test \(H_0:\beta=\beta_0\), where \(\pi\) is a nuisance parameter. A level-\(\alpha\) test \(\varphi\) is \emph{similar} if
-\[\mathbb{E}_{\beta_0,\pi}[\varphi]=\alpha,\qquad \text{for every }\pi.\]
-Given a conditioning statistic \(T\), a test is \emph{conditionally similar} if
-\[\mathbb{E}_{\beta_0,\pi}[\varphi\mid T]=\alpha,\qquad \text{a.s. for every }\pi.\]
-Conditional similarity immediately implies similarity by the law of iterated expectations.
+For a finite alternative grid, we combine conditional Neyman--Pearson best responses with exponential weight updates. Averaging preserves exact conditional similarity and yields explicit regret bounds for exact and simulated power calculations. \citet{andrews2016conditional} studies minimax regret within a class of conditional linear combination tests, while \citet{olea2020admissible} characterizes admissible similar tests. We optimize over the full conditionally similar class in the scalar experiment considered here.
 
-Define
-\[R_{\beta_0}\equiv \hat{\delta}-\beta_0\hat{\pi}.\]
-Under the null,
-\[\mathbb{E}_{\beta_0,\pi}[R_{\beta_0}]=\pi\beta_0-\pi\beta_0=0.\]
-We can therefore define the conditioning statistic
-\[T_{\beta_0}\equiv \hat{\pi}-\operatorname{Cov}(\hat{\pi},R_{\beta_0})\operatorname{Var}(R_{\beta_0})^{-1}R_{\beta_0}.\]
-By construction,
-\[\operatorname{Cov}(T_{\beta_0},R_{\beta_0})=0.\]
-Since \((T_{\beta_0},R_{\beta_0})\) are jointly Gaussian, they are independent. Consequently, under the null,
-\[\mathcal{L}_{\beta_0,\pi}(R_{\beta_0}\mid T_{\beta_0}=t)=\mathcal{L}_{\beta_0,\pi}(R_{\beta_0})\]
-does not depend on \(\pi\). Thus, conditional critical values can depend on the realization of \(T_{\beta_0}\) while maintaining rejection probability \(\alpha\) for every value of the nuisance parameter.
+\section{The testing problem}
 
-Let \(\Phi_{CS}\) denote the class of level-\(\alpha\) conditionally similar tests. For \(\theta=(\beta,\pi)\) with \(\beta\neq\beta_0\), define the conditionally similar power envelope
-\[b(\theta)\equiv \sup_{\varphi^\star\in\Phi_{CS}}\mathbb{E}_{\theta}[\varphi^\star],\]
-and define the regret of \(\varphi\in\Phi_{CS}\) at \(\theta\) by
-\[R(\varphi,\theta)\equiv b(\theta)-\mathbb{E}_{\theta}[\varphi].\]
-Our target is
-\[V\equiv \inf_{\varphi\in\Phi_{CS}}\sup_{\theta\in\Theta_1}R(\varphi,\theta),\qquad \Theta_1\equiv\{(\beta,\pi):\beta\neq\beta_0\}.\]
+We observe a pair of scalar reduced-form estimates satisfying
+\begin{equation}\label{eq:experiment} \begin{pmatrix}\hat\delta\\\hat\pi\end{pmatrix}\sim N\!\left(\begin{pmatrix}\pi\beta\\\pi\end{pmatrix},\Sigma\right),\qquad \Sigma\succ0, \end{equation}
+where $\Sigma$ is known and does not depend on $(\beta,\pi)$. We test $H_0:\beta=\beta_0$ at level $\alpha\in(0,1)$, with unrestricted nuisance parameter $\pi\in\mathbb R$. Define
+\begin{equation}\label{eq:transformation} S=\hat\delta-\beta_0\hat\pi,\qquad a=\Cov(\hat\pi,S)/\Var(S),\qquad U=\hat\pi-aS. \end{equation}
+The transformation is invertible. Let $\sigma_S^2=\Var(S)$ and $\sigma_U^2=\Var(U)$. At $\theta=(\beta,\pi)$, the variables $S$ and $U$ are independent normals with means $m(\theta)=\pi(\beta-\beta_0)$ and $\tau(\theta)=\pi-am(\theta)$ and variances $\sigma_S^2$ and $\sigma_U^2$. Under the null, $S\mid U=u\sim N(0,\sigma_S^2)$, independently of $\pi$.
 
-\section{A Finite Alternative Grid}
+A randomized test is a measurable rejection probability $\varphi(s,u)\in[0,1]$. Writing $f_0$ for the $N(0,\sigma_S^2)$ density, we consider
+\begin{equation}\label{eq:class} \CS=\left\{\varphi:\int\varphi(s,u)f_0(s)\,ds=\alpha\ \text{for Lebesgue-almost every }u\right\}. \end{equation}
+Because the null density of $U$ is everywhere positive, this restriction is equivalent to conditional similarity for every $\pi$. It implies unconditional rejection probability $\alpha$.
 
-We first consider a finite grid
-\[\Theta_I\equiv\{\theta_1,\ldots,\theta_I\}\subseteq\Theta_1,\qquad \theta_i=(\beta_i,\pi_i).\]
-Let \(g_i\) denote the density of the data under \(\theta_i\), relative to a common dominating measure \(\nu\), and define
-\[b_i\equiv\sup_{\varphi\in\Phi_{CS}}\int\varphi g_i\,d\nu.\]
-The finite-grid minimax-regret problem is
-\[V_I\equiv\inf_{\varphi\in\Phi_{CS}}\max_{i=1,\ldots,I}\left\{b_i-\int\varphi g_i\,d\nu\right\}.\]
-Let \(\Delta^{I-1}\) denote the probability simplex in \(\mathbb{R}^I\). Since the maximum of finitely many numbers equals the maximum over their convex combinations,
-\[V_I=\inf_{\varphi\in\Phi_{CS}}\sup_{w\in\Delta^{I-1}}\sum_{i=1}^Iw_i\left(b_i-\int\varphi g_i\,d\nu\right).\]
-Under standard conditions ensuring minimax interchange,
-\[V_I=\sup_{w\in\Delta^{I-1}}\inf_{\varphi\in\Phi_{CS}}\sum_{i=1}^Iw_i\left(b_i-\int\varphi g_i\,d\nu\right).\]
-Following the notation of \cite{aradillas2025approximate}, define the convex function
-\[f(w)\equiv\sup_{\varphi\in\Phi_{CS}}\sum_{i=1}^Iw_i\left(\int\varphi g_i\,d\nu-b_i\right),\qquad w\in\Delta^{I-1}.\]
-It follows that
-\[V_I=-\inf_{w\in\Delta^{I-1}}f(w).\]
-For a given \(w\), let
-\[\varphi_w\in\arg\max_{\varphi\in\Phi_{CS}}\sum_{i=1}^Iw_i\int\varphi g_i\,d\nu.\]
-Thus, \(\varphi_w\) is the WAP-optimal test within the class of conditionally similar tests for the alternative mixture
-\[g_w\equiv\sum_{i=1}^Iw_i g_i.\]
-By the same envelope argument used in \cite{aradillas2025approximate}, a subgradient of \(f\) is
-\[\nabla f(w)\equiv\left(\int\varphi_w g_1\,d\nu-b_1,\ldots,\int\varphi_w g_I\,d\nu-b_I\right)^\top.\]
-The negative of the \(i\)-th coordinate is precisely the regret of \(\varphi_w\) at \(\theta_i\):
-\[-\nabla_i f(w)=b_i-\int\varphi_w g_i\,d\nu=R(\varphi_w,\theta_i).\]
-Thus, SMD places increasing weight on alternatives for which the current WAP-optimal test has relatively large regret.
+For alternatives $\theta\in\Theta\subseteq\{(\beta,\pi):\beta\ne\beta_0\}$, define the power envelope, regret, and minimax value by
+\begin{equation}\label{eq:regret} b(\theta)=\sup_{\varphi\in\CS}\E_\theta\varphi,\qquad \Reg(\varphi,\theta)=b(\theta)-\E_\theta\varphi,\qquad V_\Theta=\inf_{\varphi\in\CS}\sup_{\theta\in\Theta}\Reg(\varphi,\theta). \end{equation}
+We first take $\Theta=\Theta_I=\{\theta_1,\ldots,\theta_I\}$, with $I\ge2$, and write $V_I=V_{\Theta_I}$ and $b_i=b(\theta_i)$.
 
-\section{The Conditional Neyman--Pearson Oracle}
+\section{Conditional best responses and weight updates}
 
-The best-response problem defining \(\varphi_w\) has a particularly simple form in the Gaussian experiment. Write
-\[a\equiv\operatorname{Cov}(\hat{\pi},R_{\beta_0})\operatorname{Var}(R_{\beta_0})^{-1},\qquad T_{\beta_0}=\hat{\pi}-aR_{\beta_0}.\]
-Let
-\[\sigma_R^2\equiv\operatorname{Var}(R_{\beta_0}),\qquad \sigma_T^2\equiv\operatorname{Var}(T_{\beta_0}).\]
-At the alternative \(\theta_i=(\beta_i,\pi_i)\), define
-\[m_i\equiv\pi_i(\beta_i-\beta_0),\qquad \tau_i\equiv\pi_i-am_i.\]
-Then
-\[\begin{pmatrix}R_{\beta_0}\\T_{\beta_0}\end{pmatrix}\sim N\left(\begin{pmatrix}m_i\\\tau_i\end{pmatrix},\begin{pmatrix}\sigma_R^2&0\\0&\sigma_T^2\end{pmatrix}\right).\]
-Under the null, \(m_i=0\), so the conditional null distribution of \(R_{\beta_0}\) given \(T_{\beta_0}=t\) is \(N(0,\sigma_R^2)\) for every \(t\) and every \(\pi\). Let \(f_0\) denote the \(N(0,\sigma_R^2)\) density. Conditional similarity is therefore equivalent to
-\[\int\varphi(r,t)f_0(r)\,dr=\alpha,\qquad \text{for a.e. }t.\]
+For weights $w$ in the probability simplex $\Delta^{I-1}$, let $g_w=\sum_iw_i g_i$, where $g_i$ is the joint density of $(S,U)$ at $\theta_i$. The best response maximizes weighted average power:
+\begin{equation}\label{eq:bestresponse} \varphi_w\in\arg\max_{\varphi\in\CS}\sum_{i=1}^I w_i\E_{\theta_i}\varphi. \end{equation}
+The weights $w$ are optimization variables for worst-case regret. Thus each best response uses a single alternative mixture, but the mixture changes across iterations as the algorithm reallocates weight toward high-regret alternatives. The constraint in \eqref{eq:class} separates across $u$. Conditional Neyman--Pearson optimization therefore rejects for large values of
+\begin{equation}\label{eq:ratio} L_w(s,u)=\frac{g_w(s,u)}{f_0(s)}=\sum_{i=1}^I w_i f_U(u;\tau_i)\exp\!\left(\frac{m_i s}{\sigma_S^2}-\frac{m_i^2}{2\sigma_S^2}\right), \end{equation}
+where $m_i=m(\theta_i)$, $\tau_i=\tau(\theta_i)$, and $f_U(\cdot;\tau_i)$ is the $N(\tau_i,\sigma_U^2)$ density. Specifically, $\varphi_w=\mathbf1\{L_w>c_w(u)\}+\gamma_w(u)\mathbf1\{L_w=c_w(u)\}$, with threshold and boundary randomization chosen to satisfy \eqref{eq:class}. For a single alternative, the optimal rule is one-sided in $S$, giving
+\begin{equation}\label{eq:envelope} b_i=\Phi\!\left(\Phi^{-1}(\alpha)+|m_i|/\sigma_S\right), \end{equation}
+where $\Phi$ is the standard normal distribution function. When $m_i=0$, the envelope equals $\alpha$.
 
-For fixed \(w\), the WAP problem is
-\[\sup_{\varphi\in\Phi_{CS}}\int\varphi(r,t)g_w(r,t)\,dr\,dt.\]
-Since the conditional-similarity restriction holds pointwise in \(t\), this optimization separates across values of \(t\). The conditional Neyman--Pearson lemma therefore yields
-\[\varphi_w(r,t)=\mathbf{1}\left\{\frac{g_w(r,t)}{f_0(r)}>c_w(t)\right\},\]
-with randomization on the boundary when necessary, where \(c_w(t)\) is chosen so that
-\[\int\varphi_w(r,t)f_0(r)\,dr=\alpha.\]
-In the Gaussian experiment,
-\[\frac{g_w(r,t)}{f_0(r)}=\sum_{i=1}^Iw_i f_T(t;\tau_i)\exp\left(\frac{m_i r}{\sigma_R^2}-\frac{m_i^2}{2\sigma_R^2}\right),\]
-where \(f_T(\cdot;\tau_i)\) denotes the \(N(\tau_i,\sigma_T^2)\) density. Hence the best response required in each SMD iteration is a conditional likelihood-ratio test and is exactly conditionally similar.
+The function $F(w)=\sup_{\varphi\in\CS}\sum_iw_i(\E_{\theta_i}\varphi-b_i)$ is convex, with subgradient $G_i(w)=\E_{\theta_i}\varphi_w-b_i$. Negative-entropy mirror descent thus increases weights in proportion to estimated regret. Starting from $w_{1,i}=1/I$, at iteration $k$ we compute $\varphi_k=\varphi_{w_k}$ and set
+\begin{equation}\label{eq:update} \widehat p_{k,i}=\frac1N\sum_{n=1}^N\varphi_k(Y_{k,i,n}),\qquad \widehat G_{k,i}=\widehat p_{k,i}-b_i,\qquad w_{k+1,i}=\frac{w_{k,i}\exp(-\eta\widehat G_{k,i})}{\sum_jw_{k,j}\exp(-\eta\widehat G_{k,j})}. \end{equation}
+Conditional on the preceding iterations, the draws $Y_{k,i,n}\sim g_i$ are independent across $i$ and $n$ and fresh at each iteration. Hence $\widehat G_k$ is conditionally unbiased. Exact-power updates replace $\widehat p_{k,i}$ by $\E_{\theta_i}\varphi_k$.
 
-For a single alternative \(\theta_i\), \(R_{\beta_0}\) and \(T_{\beta_0}\) are independent and the conditional alternative distribution of \(R_{\beta_0}\) does not depend on \(t\). Thus the conditionally similar power envelope is
-\[b_i=\Phi\left(z_\alpha+\frac{|m_i|}{\sigma_R}\right),\qquad z_\alpha\equiv\Phi^{-1}(\alpha).\]
+We return $\bar\varphi_K=K^{-1}\sum_{k=1}^K\varphi_k$, implemented by selecting an iteration uniformly and applying its test. Simulation draws and this random selection are independent of the data being tested. Conditional on the simulation history, $\bar\varphi_K\in\CS$. Thus simulation affects regret but does not affect conditional size when best responses are computed exactly.
 
-\section{Stochastic Mirror Descent}
-
-Following \cite{aradillas2025approximate}, use the negative-entropy mirror map
-\[\Phi(w)\equiv\sum_{i=1}^Iw_i\ln(w_i)\]
-over \(\mathcal{X}\equiv\Delta^{I-1}\). The corresponding initial condition is
-\[w_1=\left(\frac{1}{I},\ldots,\frac{1}{I}\right).\]
-If the subgradient is known exactly, the mirror-descent update is
-\[w_{t+1,i}=\frac{w_{t,i}\exp\left(-\eta\nabla_i f(w_t)\right)}{\sum_{j=1}^Iw_{t,j}\exp\left(-\eta\nabla_j f(w_t)\right)}.\]
-Since \(-\nabla_i f(w_t)=R(\varphi_{w_t},\theta_i)\), this can equivalently be written as
-\[w_{t+1,i}=\frac{w_{t,i}\exp\left(\eta R(\varphi_{w_t},\theta_i)\right)}{\sum_{j=1}^Iw_{t,j}\exp\left(\eta R(\varphi_{w_t},\theta_j)\right)}.\]
-Thus the procedure places more weight on alternatives at which the current test has larger regret.
-
-As in \cite{aradillas2025approximate}, the subgradient can instead be estimated by simulation. For each \(i=1,\ldots,I\), let \(Y_{i,1},\ldots,Y_{i,N}\) be i.i.d. draws from \(g_i\), independently of \(w_t\), and define
-\[\widehat{G}_N(w_t)\equiv\left(\frac{1}{N}\sum_{n=1}^N\varphi_{w_t}(Y_{1,n})-b_1,\ldots,\frac{1}{N}\sum_{n=1}^N\varphi_{w_t}(Y_{I,n})-b_I\right)^\top.\]
-Then
-\[\mathbb{E}\left[\widehat{G}_N(w_t)\mid w_t\right]=\nabla f(w_t),\]
-so \(\widehat{G}_N(w_t)\) is an unbiased estimator of a subgradient of \(f\). The stochastic mirror-descent update is therefore
-\[w_{t+1,i}=\frac{w_{t,i}\exp\left(-\eta\widehat{G}_{i,N}(w_t)\right)}{\sum_{j=1}^Iw_{t,j}\exp\left(-\eta\widehat{G}_{j,N}(w_t)\right)}.\]
-As in \cite{aradillas2025approximate}, define
-\[\bar{w}_T\equiv\frac{1}{T}\sum_{t=1}^T w_t,\qquad \bar{\varphi}_T\equiv\frac{1}{T}\sum_{t=1}^T\varphi_{w_t}.\]
-The relevant output for the testing problem is \(\bar{\varphi}_T\). Since every \(\varphi_{w_t}\) is exactly conditionally similar,
-\[\mathbb{E}_{\beta_0,\pi}[\bar{\varphi}_T\mid T_{\beta_0}]=\frac{1}{T}\sum_{t=1}^T\mathbb{E}_{\beta_0,\pi}[\varphi_{w_t}\mid T_{\beta_0}]=\alpha.\]
-Thus \(\bar{\varphi}_T\in\Phi_{CS}\) exactly. This differs favorably from the original problem in \cite{aradillas2025approximate}, where the individual Neyman--Pearson best responses need not satisfy all of the size constraints.
-
-\section{Finite-Grid Guarantee}
-
-The following proposition gives the deterministic mirror-descent guarantee when the subgradient is evaluated exactly.
-
-\begin{prop}
-Suppose the minimax interchange above holds, and suppose the update uses the exact subgradient \(\nabla f(w_t)\). If \(w_1=(1/I,\ldots,1/I)\), then for any \(\eta>0\),
-\[\max_{i=1,\ldots,I}R(\bar{\varphi}_T,\theta_i)\leq V_I+\frac{\ln(I)}{\eta T}+\frac{\eta}{8}.\]
-Consequently, taking
-\[\eta=\sqrt{\frac{8\ln(I)}{T}}\]
-gives
-\[\max_{i=1,\ldots,I}R(\bar{\varphi}_T,\theta_i)\leq V_I+\sqrt{\frac{\ln(I)}{2T}}.\]
-\end{prop}
-
-\begin{proof}
-Let \(r_{t,i}\equiv R(\varphi_{w_t},\theta_i)\). Since \(b_i\) is the maximal power attainable within \(\Phi_{CS}\), \(r_{t,i}\in[0,1]\). The standard exponential-weights inequality gives
-\[\max_i\frac{1}{T}\sum_{t=1}^Tr_{t,i}\leq\frac{1}{T}\sum_{t=1}^T\sum_{i=1}^Iw_{t,i}r_{t,i}+\frac{\ln(I)}{\eta T}+\frac{\eta}{8}.\]
-Since \(\varphi_{w_t}\) maximizes \(w_t\)-weighted power over \(\Phi_{CS}\), it minimizes \(w_t\)-weighted regret, and therefore
-\[\sum_{i=1}^Iw_{t,i}r_{t,i}=\inf_{\varphi\in\Phi_{CS}}\sum_{i=1}^Iw_{t,i}R(\varphi,\theta_i)\leq V_I.\]
-Finally, power is linear in the test, so
-\[R(\bar{\varphi}_T,\theta_i)=\frac{1}{T}\sum_{t=1}^TR(\varphi_{w_t},\theta_i).\]
-Combining these inequalities gives the result.
-\end{proof}
-
-Thus, if
-\[T\geq\frac{\ln(I)}{2\epsilon^2},\]
-the average test has maximal regret at most \(V_I+\epsilon\) on the finite grid. Replacing the exact subgradient by \(\widehat{G}_N\) gives the corresponding SMD algorithm. Since the stochastic subgradient is unbiased and bounded, standard stochastic mirror-descent and martingale-concentration arguments add a sampling-error term that vanishes as the number of epochs and the number of Monte Carlo draws increase.
-
-\section{From a Finite Grid to a Continuum}
-
-The finite-grid result can be related to the original continuum problem through discretization. For any test \(0\leq\varphi\leq1\),
-\[\left|\mathbb{E}_{\theta}[\varphi]-\mathbb{E}_{\theta'}[\varphi]\right|\leq d_{\mathrm{TV}}(P_\theta,P_{\theta'}).\]
-The power envelope therefore satisfies
-\[|b(\theta)-b(\theta')|\leq d_{\mathrm{TV}}(P_\theta,P_{\theta'}),\]
-and hence
-\[|R(\varphi,\theta)-R(\varphi,\theta')|\leq2d_{\mathrm{TV}}(P_\theta,P_{\theta'}).\]
-Suppose \(\Theta_I\) is a \(\rho\)-net for the alternative parameter space in total variation:
-\[\sup_{\theta\in\Theta_1}\min_{i=1,\ldots,I}d_{\mathrm{TV}}(P_\theta,P_{\theta_i})\leq\rho.\]
-Then any test satisfying
-\[\max_{i=1,\ldots,I}R(\varphi,\theta_i)\leq V_I+\epsilon\]
-also satisfies
-\[\sup_{\theta\in\Theta_1}R(\varphi,\theta)\leq V+\epsilon+2\rho.\]
-Thus a sufficiently fine grid yields an approximate solution to the continuum problem. For an unrestricted and noncompact alternative parameter space, an additional argument is needed to show that attention can be restricted to a sufficiently large compact subset.
-
-\section{Discussion}
-
-The proposed approach combines two existing ideas. \cite{andrews2016conditional} considers minimax regret within a restricted class of conditionally similar CLC tests. The formulation above instead targets minimax regret over the full class \(\Phi_{CS}\). Direct optimization over this infinite-dimensional class appears difficult, but the minimax representation avoids parameterizing the test itself: for a given distribution \(w\) over alternatives, the tester's best response is obtained from a conditional Neyman--Pearson problem.
-
-The connection with \cite{aradillas2025approximate} is also direct. In their problem, the SMD variables determine weights on null distributions, the subgradient records violations of the Type I error constraints, and the best-response oracle is an ordinary Neyman--Pearson test. Here, the SMD variables \(w\) determine weights on alternatives, the negative subgradient records power regret, and the best-response oracle is a conditionally similar Neyman--Pearson test. In both cases negative-entropy SMD produces an exponentiated update, and the final approximately optimal test is obtained by averaging the sequence of best-response tests.
-
-The main remaining theoretical tasks are therefore to state primitive conditions guaranteeing the required minimax interchange, derive a finite-sample guarantee for the stochastic rather than exact subgradient update, and establish conditions under which the continuum alternative space can be uniformly approximated by a finite grid.
-
-\section{What $T$ to pick}
-We can use a similar method as in \cite{aradillas2025approximate} to determine how many rounds to pick.
-
-
-\begin{prop}
-Consider the finite alternative grid $\Theta_I=\{\theta_1,\ldots,\theta_I\}$ and define
-\[
-b_i\equiv\sup_{\varphi\in\Phi_{CS}}\mathbb{E}_{\theta_i}[\varphi],\qquad R(\varphi,\theta_i)\equiv b_i-\mathbb{E}_{\theta_i}[\varphi].
-\]
-Let
-\[
-V_I\equiv\inf_{\varphi\in\Phi_{CS}}\max_{i=1,\ldots,I}R(\varphi,\theta_i).
-\]
-At iteration $t$, let $\varphi_{w_t}$ be the WAP-optimal conditionally similar test associated with $w_t\in\Delta^{I-1}$. Suppose that for each $i$ we construct an unbiased estimate $\widehat p_{t,i}$ of $\mathbb{E}_{\theta_i}[\varphi_{w_t}]$ using $N$ independent draws, with each draw taking values in $[0,1]$, and define
-\[
-\widehat G_{t,i}\equiv\widehat p_{t,i}-b_i.
-\]
-Initialize $w_{1,i}=1/I$ and update
-\[
-w_{t+1,i}=\frac{w_{t,i}\exp(-\eta\widehat G_{t,i})}{\sum_{j=1}^I w_{t,j}\exp(-\eta\widehat G_{t,j})}.
-\]
-Let
-\[
-\bar{\varphi}_T\equiv\frac{1}{T}\sum_{t=1}^T\varphi_{w_t}.
-\]
-Then, for any $\delta\in(0,1)$, with probability at least $1-\delta$,
-\[
-\max_{i=1,\ldots,I}R(\bar{\varphi}_T,\theta_i)\leq V_I+\frac{\ln(I)}{\eta T}+\frac{\eta}{2}+\sqrt{\frac{2\ln((I+1)/\delta)}{NT}}.
-\]
-For fixed $T$, the first two approximation terms are minimized by
-\[
-\eta^\star=\sqrt{\frac{2\ln(I)}{T}},
-\]
-which yields
-\[
-\max_{i=1,\ldots,I}R(\bar{\varphi}_T,\theta_i)\leq V_I+\sqrt{\frac{2\ln(I)}{T}}+\sqrt{\frac{2\ln((I+1)/\delta)}{NT}}
-\]
-with probability at least $1-\delta$. Therefore, to guarantee
-\[
-\max_{i=1,\ldots,I}R(\bar{\varphi}_T,\theta_i)\leq V_I+\epsilon
-\]
-with probability at least $1-\delta$, it suffices to take
-\[
-T=\left\lceil\frac{1}{\epsilon^2}\left(\sqrt{2\ln(I)}+\sqrt{\frac{2\ln((I+1)/\delta)}{N}}\right)^2\right\rceil,
-\]
-together with
-\[
-\eta=\sqrt{\frac{2\ln(I)}{T}}.
-\]
-\end{prop}
-
-\begin{proof}
-Let
-\[
-G_{t,i}\equiv\mathbb{E}_{\theta_i}[\varphi_{w_t}]-b_i
-\]
-denote the exact subgradient coordinate and write
-\[
-\Delta_{t,i}\equiv\widehat G_{t,i}-G_{t,i}.
-\]
-Since both $\widehat p_{t,i}$ and $b_i$ lie in $[0,1]$, we have $\|\widehat G_t\|_\infty\leq1$. Negative-entropy mirror descent on the simplex therefore implies, for any $w\in\Delta^{I-1}$,
-\[
-\frac{1}{T}\sum_{t=1}^T\widehat G_t^\top(w_t-w)\leq\frac{\ln(I)}{\eta T}+\frac{\eta}{2}.
-\]
-Take $w=e_i$, the $i$th vertex of the simplex. Since $R(\varphi_{w_t},\theta_i)=-G_{t,i}$, this gives
-\[
-\frac{1}{T}\sum_{t=1}^T\left(R(\varphi_{w_t},\theta_i)-w_t^\top R_t\right)\leq\frac{\ln(I)}{\eta T}+\frac{\eta}{2}+\frac{1}{T}\sum_{t=1}^T\Delta_{t,i}-\frac{1}{T}\sum_{t=1}^Tw_t^\top\Delta_t,
-\]
-where $R_t$ is the vector whose $i$th component is $R(\varphi_{w_t},\theta_i)$.
-
-Conditional on the history through iteration $t-1$, each $\Delta_{t,i}$ is mean zero and is an average of $N$ independent bounded random variables. Hoeffding's inequality therefore gives
-\[
-\Pr\left(\frac{1}{T}\sum_{t=1}^T\Delta_{t,i}>x\right)\leq\exp(-2NTx^2).
-\]
-The same bound applies to
-\[
--\frac{1}{T}\sum_{t=1}^Tw_t^\top\Delta_t,
-\]
-because $w_t$ is measurable with respect to the past and is a probability vector. Taking
-\[
-x=\sqrt{\frac{\ln((I+1)/\delta)}{2NT}}
-\]
-and applying a union bound over the $I$ coordinate deviations and the weighted deviation implies that, with probability at least $1-\delta$,
-\[
-\frac{1}{T}\sum_{t=1}^T\left(R(\varphi_{w_t},\theta_i)-w_t^\top R_t\right)\leq\frac{\ln(I)}{\eta T}+\frac{\eta}{2}+\sqrt{\frac{2\ln((I+1)/\delta)}{NT}}
-\]
-simultaneously for every $i$.
-
-For every $t$, $\varphi_{w_t}$ minimizes $w_t$-weighted regret over $\Phi_{CS}$, so
-\[
-w_t^\top R_t=\inf_{\varphi\in\Phi_{CS}}\sum_{i=1}^Iw_{t,i}R(\varphi,\theta_i)\leq V_I.
-\]
-Moreover, by linearity of power,
-\[
-R(\bar{\varphi}_T,\theta_i)=\frac{1}{T}\sum_{t=1}^TR(\varphi_{w_t},\theta_i).
-\]
-Combining the preceding inequalities gives
-\[
-\max_iR(\bar{\varphi}_T,\theta_i)\leq V_I+\frac{\ln(I)}{\eta T}+\frac{\eta}{2}+\sqrt{\frac{2\ln((I+1)/\delta)}{NT}}.
-\]
-Minimizing $\ln(I)/(\eta T)+\eta/2$ over $\eta>0$ gives
-\[
-\eta^\star=\sqrt{\frac{2\ln(I)}{T}},
-\]
-and substitution yields
-\[
-\sqrt{\frac{2\ln(I)}{T}}+\sqrt{\frac{2\ln((I+1)/\delta)}{NT}}.
-\]
-Requiring this quantity to be no larger than $\epsilon$ gives the stated sufficient choice of $T$.
-\end{proof}
-
-\section{Simulations}
-We implement this in simulations. See Appendix \ref{app:code_description} for details.
-
-\bibliography{references}
-\bibliographystyle{apalike}
-
-\appendix
-
-\section{Code Details}\label{app:code_description}
-Here is pseudo-code describing what is happening in the code.
-
-\begin{breakablealgorithm}
-\caption{SMD for Minimax-Regret Conditionally Similar Tests}
+\begin{algorithm}[t]
+\caption{Conditionally similar testing by stochastic mirror descent}\label{alg:smd}
 \begin{algorithmic}[1]
-
-\Require Null value $\beta_0$, covariance matrix $\Sigma$, alternative grid $\Theta_I=\{\theta_i=(\beta_i,\pi_i)\}_{i=1}^I$, size $\alpha$, target accuracy $\epsilon$, confidence level $1-\delta$, Monte Carlo sample size $N$
-
-\State Define
-\[
-R_{\beta_0}=\hat{\delta}-\beta_0\hat{\pi},
-\qquad
-a=\frac{\Cov(\hat{\pi},R_{\beta_0})}{\Var(R_{\beta_0})},
-\qquad
-T_{\beta_0}=\hat{\pi}-aR_{\beta_0}.
-\]
-
-\State Compute
-\[
-\sigma_R^2=\Var(R_{\beta_0}),
-\qquad
-\sigma_T^2=\Var(T_{\beta_0}).
-\]
-
-\For{$i=1,\ldots,I$}
-    \State Set
-    \[
-    m_i=\pi_i(\beta_i-\beta_0),
-    \qquad
-    \tau_i=\pi_i-am_i.
-    \]
-    \State Compute the pointwise conditionally similar power envelope
-    \[
-    b_i=\Phi\left(z_\alpha+\frac{|m_i|}{\sigma_R}\right),
-    \qquad
-    z_\alpha=\Phi^{-1}(\alpha).
-    \]
+\Require Grid $\Theta_I$, size $\alpha$, iterations $K$, draws $N$, step size $\eta$.
+\State Compute envelopes $b_i$ using \eqref{eq:envelope}; set $w_{1,i}=1/I$.
+\For{$k=1,\ldots,K$}
+\State Construct $\varphi_k$ from \eqref{eq:ratio}, imposing conditional size $\alpha$.
+\State Draw fresh $Y_{k,i,n}\sim g_i$ independently for all $i,n$.
+\State Set $\widehat p_{k,i}=N^{-1}\sum_n\varphi_k(Y_{k,i,n})$ for every $i$.
+\State Set $w_{k+1,i}\propto w_{k,i}\exp\{\eta(b_i-\widehat p_{k,i})\}$; normalize.
 \EndFor
-
-\State Choose
-\[
-T=\left\lceil
-\frac{1}{\epsilon^2}
-\left(
-\sqrt{2\log I}
-+
-\sqrt{\frac{2\log((I+1)/\delta)}{N}}
-\right)^2
-\right\rceil,
-\qquad
-\eta=\sqrt{\frac{2\log I}{T}}.
-\]
-
-\State Initialize $w_{1,i}=\frac{1}{I},\qquad i=1,\ldots,I$.
-
-\For{$t=1,\ldots,T$}
-
-    \State Form the weighted alternative density
-    \[
-    g_{w_t}=\sum_{i=1}^I w_{t,i}g_i.
-    \]
-
-    \State Construct the WAP-optimal conditionally similar test
-    \[
-    \varphi_{w_t}\in
-    \arg\max_{\varphi\in\Phi_{CS}}
-    \sum_{i=1}^I
-    w_{t,i}\mathbb{E}_{\theta_i}[\varphi].
-    \]
-
-    \State For every realization $T_{\beta_0}=s$, choose the conditional Neyman--Pearson rejection region
-    \[
-    \varphi_{w_t}(r,s)
-    =
-    \mathbf{1}
-    \left\{
-    \frac{g_{w_t}(r,s)}{f_0(r)}
-    >
-    c_{w_t}(s)
-    \right\},
-    \]
-    where $c_{w_t}(s)$ is chosen so that
-    \[
-    \Pr_{\beta_0,\pi}
-    \left(
-    \varphi_{w_t}(R_{\beta_0},s)=1
-    \mid T_{\beta_0}=s
-    \right)
-    =\alpha.
-    \]
-
-    \For{$i=1,\ldots,I$}
-        \State Draw $N$ Monte Carlo realizations under $\theta_i$ and estimate
-        \[
-        \widehat{p}_{t,i}
-        \approx
-        \mathbb{E}_{\theta_i}
-        [\varphi_{w_t}].
-        \]
-        \State Compute the stochastic subgradient coordinate
-        \[
-        \widehat{G}_{t,i}
-        =
-        \widehat{p}_{t,i}-b_i.
-        \]
-    \EndFor
-
-    \State Update the SMD weights:
-    \[
-    w_{t+1,i}
-    =
-    \frac{
-    w_{t,i}\exp(-\eta\widehat{G}_{t,i})
-    }{
-    \sum_{j=1}^I
-    w_{t,j}\exp(-\eta\widehat{G}_{t,j})
-    },
-    \qquad i=1,\ldots,I.
-    \]
-
-\EndFor
-
-\State Return the averaged test
-\[
-\bar{\varphi}_T
-=
-\frac{1}{T}
-\sum_{t=1}^T
-\varphi_{w_t}.
-\]
-
-\State Compute its estimated power and regret:
-\[
-\widehat{\operatorname{Power}}_i(\bar{\varphi}_T)
-=
-\frac{1}{T}
-\sum_{t=1}^T
-\widehat{p}_{t,i},
-\qquad
-\widehat{R}_i
-=
-b_i-
-\widehat{\operatorname{Power}}_i(\bar{\varphi}_T).
-\]
-
-\State Report $\max_{i=1,\ldots,I}\widehat{R}_i$.
-
+\State \Return $\bar\varphi_K=K^{-1}\sum_k\varphi_k$.
 \end{algorithmic}
-\end{breakablealgorithm}
+\end{algorithm}
 
+\section{Finite-iteration guarantees}
 
+\begin{proposition}\label{prop:bounds}
+For the exact conditional best responses in \eqref{eq:bestresponse}, the following statements hold for every $K\ge1$ and $\eta>0$.
+\begin{enumerate}
+\item With exact-power updates,
+\begin{equation}\label{eq:deterministic} \max_i\Reg(\bar\varphi_K,\theta_i)\le V_I+\frac{\log I}{\eta K}+\frac{\eta}{8}. \end{equation}
+\item With the simulated updates in \eqref{eq:update}, for any $\delta\in(0,1)$, with probability at least $1-\delta$ over the simulation draws,
+\begin{equation}\label{eq:stochastic} \max_i\Reg(\bar\varphi_K,\theta_i)\le V_I+\frac{\log I}{\eta K}+\frac{\eta}{2}+\sqrt{\frac{2\log((I+1)/\delta)}{NK}}. \end{equation}
+\end{enumerate}
+\end{proposition}
 
+\begin{proof}
+Write $r_{k,i}=\Reg(\varphi_k,\theta_i)\in[0,1]$. Best-response optimality gives $w_k^\top r_k=\inf_{\varphi\in\CS}\sum_iw_{k,i}\Reg(\varphi,\theta_i)\le V_I$. The exponential-weights inequality for rewards in $[0,1]$ yields
+\begin{equation}\label{eq:ew} \max_i\frac1K\sum_kr_{k,i}\le\frac1K\sum_kw_k^\top r_k+\frac{\log I}{\eta K}+\frac\eta8. \end{equation}
+Linearity of power proves \eqref{eq:deterministic}.
+
+For simulated updates, $\widehat G_{k,i}\in[-1,1]$. The same inequality, now with range length two, gives, simultaneously for all $i$,
+\begin{equation}\label{eq:noise} \frac1K\sum_k(r_{k,i}-w_k^\top r_k)\le\frac{\log I}{\eta K}+\frac\eta2+\frac1K\sum_k\Delta_{k,i}-\frac1K\sum_kw_k^\top\Delta_k, \end{equation}
+where $\Delta_{k,i}=\widehat G_{k,i}-G_i(w_k)$. Conditional Hoeffding bounds and iteration over the simulation history imply $\Pr(K^{-1}\sum_k\Delta_{k,i}>x)\le \exp(-2NKx^2)$. The same bound holds for $-K^{-1}\sum_kw_k^\top\Delta_k$: conditional independence gives squared summand ranges totaling $\sum_iw_{k,i}^2/N\le1/N$ at each iteration. A union bound over these $I+1$ deviations, with $x=\sqrt{\log((I+1)/\delta)/(2NK)}$, bounds the two noise terms in \eqref{eq:noise} by $2x$. Using $w_k^\top r_k\le V_I$ and linearity proves \eqref{eq:stochastic}.
+\end{proof}
+
+With exact powers, $\eta=\sqrt{8\log I/K}$ gives error $\sqrt{\log I/(2K)}$. With simulated powers, an error tolerance $\epsilon>0$ and failure probability $\delta$ are attained by
+\begin{equation}\label{eq:iterations} K=\left\lceil\epsilon^{-2}\left(\sqrt{2\log I}+\sqrt{\frac{2\log((I+1)/\delta)}N}\right)^2\right\rceil,\qquad \eta=\sqrt{\frac{2\log I}{K}}. \end{equation}
+The guarantees concern the average test, not the best response to average weights. They require no minimax interchange: weighted regret is bounded by $V_I$ directly. Indeed, \eqref{eq:ew} also establishes $V_I=-\min_{w\in\Delta^{I-1}}F(w)$ by letting $K$ increase, combining weak duality with the bound on average weighted regret; continuity of $F$ ensures attainment.
+
+\section{Discretization and implementation}
+
+\begin{corollary}\label{cor:grid}
+Suppose $\Theta_I\subseteq\Theta$ and $\sup_{\theta\in\Theta}\min_i\TV(P_\theta,P_{\theta_i})\le\rho$, where $\TV(P,Q)=\sup_A|P(A)-Q(A)|$. Any $\varphi\in\CS$ with grid regret at most $V_I+\epsilon$ satisfies
+\begin{equation}\label{eq:continuum} \sup_{\theta\in\Theta}\Reg(\varphi,\theta)\le V_\Theta+\epsilon+2\rho. \end{equation}
+\end{corollary}
+\begin{proof}
+For every $[0,1]$-valued test, $|\E_\theta\varphi-\E_{\theta'}\varphi|\le\TV(P_\theta,P_{\theta'})$. Taking suprema gives the same bound for $|b(\theta)-b(\theta')|$. Regret therefore changes by at most twice total variation. Approximation by the grid and $V_I\le V_\Theta$ give \eqref{eq:continuum}.
+\end{proof}
+
+In the Gaussian experiment, compact alternative sets admit arbitrarily fine total-variation grids by continuity of the mean. The unrestricted alternative space requires a separate tail argument; a finite grid alone does not establish uniform optimality there.
+
+Implementation requires conditional critical values and evaluations of \eqref{eq:ratio} at simulated observations. Equation~\eqref{eq:iterations} separates iteration error from simulation error, but is not a bound on total computing time. Numerical errors in critical values or best-response optimization are outside Proposition~\ref{prop:bounds} and must be assessed separately. Subject to exact conditional best responses, the procedure delivers a conditionally similar test with a prescribed finite-grid regret guarantee.
+
+\section{A numerical illustration}\label{sec:example}
+
+We set $\beta_0=0$, $\Sigma=I_2$, and $\alpha=0.05$, so that $S=\hat\delta$ and $U=\hat\pi$. Our grid contains $\theta_1=(-3,0.5)$ and $\theta_2=(1,2)$, giving $(m_1,m_2)=(-1.5,2)$ and $(\tau_1,\tau_2)=(0.5,2)$. The corresponding power envelopes are $0.4424$ and $0.6388$. This deliberately small grid isolates the trade-off between power against negative and positive effects.
+
+For these two alternatives, the likelihood ratio in \eqref{eq:ratio} is strictly convex in $s$. The best response rejects in two tails. If $q_w(u)$ is its left-tail null probability, the critical values satisfy
+\begin{equation}\label{eq:tailallocation} \ell_w(u)=\Phi^{-1}(q_w(u)),\qquad h_w(u)=\Phi^{-1}(1-\alpha+q_w(u)),\qquad L_w(\ell_w(u),u)=L_w(h_w(u),u). \end{equation}
+We solve the last equality by bisection over $q\in[10^{-14},\alpha-10^{-14}]$. The resulting rule has conditional size $q+(\alpha-q)=\alpha$ by construction. Larger values of $u$ favor the second alternative and shift rejection probability toward the right tail.
+
+We execute Algorithm~\ref{alg:smd} for $K=1{,}000$ iterations with $N=512$ independent draws per alternative per iteration, $\eta=\sqrt{2\log(2)/K}$, and random seed $20261102$. We evaluate power separately by integrating the conditional rejection probability with 320-node Gauss--Hermite quadrature. Doubling the quadrature order from 160 to 320 changes the computed iteration-specific powers by less than $10^{-12}$. These are results from one simulation run, rather than averages across repeated training runs. OpenAI Codex assisted in designing and implementing this numerical illustration, running the computations, and drafting their interpretation; the author reviewed and verified the code and results. The accompanying source records the implemented procedure and all simulation settings.
+
+\begin{table}[t]
+\centering
+\caption{Power and regret on the two-alternative grid}\label{tab:example}
+\small
+\input{results/example_table.tex}
+\par\smallskip
+\begin{minipage}{\linewidth}
+\footnotesize\textit{Notes:} The equal-tail test rejects when $|S|>\Phi^{-1}(0.975)$. The initial best response uses $w=(1/2,1/2)$. SMD rows average all tests through the indicated iteration of the same run. Powers are evaluated by numerical integration; size follows from the tail allocation. Maximum regret is relative to the pointwise envelopes in \eqref{eq:envelope}.
+\end{minipage}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.72\linewidth]{results/figure_1_convergence.pdf}
+\caption{Regret along the SMD iterations. We report the maximum regret of the average test and the running maximum of $w_k^\top r_k$, evaluated by numerical integration. With exact best responses and integration, the latter bounds $V_I$ from below. OpenAI Codex assisted with the plotting code; the figure is generated reproducibly from computed results.}\label{fig:example}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.72\linewidth]{results/figure_2_tail_allocation.pdf}
+\caption{Conditional tail allocation. Left-tail null rejection probabilities for the initial and final individual best responses are compared with the equal-tail test. The returned test averages all iterates. OpenAI Codex assisted with the plotting code; the figure is generated reproducibly from computed results.}\label{fig:tails}
+\end{figure}
+
+Table~\ref{tab:example} shows that conditioning improves power at both alternatives relative to the equal-tail test. Figure~\ref{fig:tails} shows how the conditioning statistic shifts rejection probability between tails. Subsequent weight updates increase power at $\theta_1$ while sacrificing some power at $\theta_2$, reducing the largest regret. After 1,000 iterations, maximum regret is $0.0783$, compared with $0.0819$ initially and $0.1228$ for the equal-tail test. Figure~\ref{fig:example} reports a numerical dual lower bound of $0.0769$, leaving a numerical gap of $0.0014$. This diagnostic concerns the chosen grid and numerical best responses; it is not a uniform bound over unexamined alternatives. The replication package reproduces both figures, the table, and their underlying numerical results \citep{aradillasReplication2026}.
+
+\section{Conclusion}
+
+Conditional similarity allows us to shift the numerical search from null distributions enforcing size to alternative distributions determining worst-case power regret. Relative to EMW's fixed weighted-average-power criterion, the alternative weights are chosen endogenously to balance regret within the conditionally similar class. Conditional Neyman--Pearson best responses and stochastic mirror descent deliver finite-grid guarantees while preserving exact conditional size. Extensions beyond the grid require control of discretization error, and numerical implementations require accurate best responses.
+
+\section*{Data and code availability}
+
+We use simulated data and no external or confidential data. The Python implementation, dependency versions, random seed, computed results, and reproduction instructions are available in the public GitHub replication repository \citep{aradillasReplication2026}: \url{https://github.com/aaf101/SMD-for-Conditional-Similarity}. The version tagged \texttt{v1.0.0} records the replication package for this manuscript. The README describes how to reproduce the figures and table and compile the paper.
+
+\section*{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
+
+During the preparation of this work, the author used OpenAI Codex to substantially rewrite and organize an existing manuscript; assist with mathematical exposition, proof arguments, and literature comparisons; develop, execute, and check the Python numerical illustration; generate its figures and table from computed results; and prepare and check the LaTeX source and compiled manuscript. The numerical figures were produced by plotting program output, rather than by generative image synthesis. The author directed this work and subsequently reviewed and verified the AI-assisted text, mathematical arguments, references, code, and numerical results, and edited the content as needed. The author takes full responsibility for the content of the article.
+
+\bibliographystyle{apalike}
+\bibliography{references}
 \end{document}

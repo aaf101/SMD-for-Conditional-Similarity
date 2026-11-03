@@ -1,0 +1,4 @@
+- Conditional similarity enforces size within every best-response test.
+- Alternative weights adapt to minimize worst-case power regret.
+- Stochastic mirror descent yields explicit finite-iteration regret bounds.
+- Averaging preserves exact conditional size while balancing power losses.

@@ -1,19 +1,23 @@
 {
+  "epsilon": 0.02,
+  "delta": 0.05,
+  "confidence_level": 0.95,
+  "theoretical_error_bound": 0.019998185574659603,
   "seed": 20261102,
-  "iterations": 1000,
+  "iterations": 4251,
   "draws_per_alternative": 512,
-  "eta": 0.037232974110590344,
+  "eta": 0.018058520888835753,
   "envelope": [
     0.4424132202501233,
     0.638760031312335
   ],
   "final_weights": [
-    0.5153203949357097,
-    0.4846796050642903
+    0.5257101598657142,
+    0.4742898401342858
   ],
-  "final_max_regret": 0.0783096871854872,
-  "numerical_lower_bound": 0.07690764493325947,
-  "numerical_gap": 0.001402042252227731,
-  "quadrature_difference": 6.994405055138486e-15,
-  "max_size_error": 1.1102230246251565e-16
+  "final_max_regret": 0.07755285682611579,
+  "numerical_lower_bound": 0.0769076449535338,
+  "numerical_gap": 0.0006452118725819855,
+  "quadrature_difference": 6.661338147750939e-15,
+  "max_size_error": 1.1796119636642288e-16
 }

@@ -1,12 +1,12 @@
 cff-version: 1.2.0
 message: "Please cite these replication materials using the metadata below."
 type: software
-title: "Replication materials for Minimax regret for conditionally similar tests"
+title: "Replication materials for Approximate minimax regret for conditionally similar tests"
 authors:
   - family-names: "Aradillas Fernández"
     given-names: "Andrés"
     affiliation: "Department of Economics, Massachusetts Institute of Technology"
-version: 1.0.0
+version: 1.1.0
 date-released: 2026-11-02
 url: "https://github.com/aaf101/SMD-for-Conditional-Similarity"
 repository-code: "https://github.com/aaf101/SMD-for-Conditional-Similarity"

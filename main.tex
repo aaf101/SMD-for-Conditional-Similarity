@@ -79,7 +79,8 @@ We return $\bar\varphi_K=K^{-1}\sum_{k=1}^K\varphi_k$, which could also be imple
 \begin{algorithm}[t]
 \caption{Conditionally similar testing by stochastic mirror descent}\label{alg:smd}
 \begin{algorithmic}[1]
-\Require Grid $\Theta_I$, size $\alpha$, iterations $K$, draws $N$, step size $\eta$.
+\Require Grid $\Theta_I$, size $\alpha$, tolerance $\epsilon$, failure probability $\delta$, draws $N$.
+\State Choose $K$ and $\eta$ according to \eqref{eq:iterations}.
 \State Compute envelopes $b_i$ using \eqref{eq:envelope}; set $w_{1,i}=1/I$.
 \For{$k=1,\ldots,K$}
 \State Construct $\varphi_k$ from \eqref{eq:ratio}, imposing conditional size $\alpha$.
@@ -126,7 +127,7 @@ For these two alternatives, the likelihood ratio in \eqref{eq:ratio} is strictly
 \begin{equation}\label{eq:tailallocation} \ell_w(u)=\Phi^{-1}(q_w(u)),\qquad h_w(u)=\Phi^{-1}(1-\alpha+q_w(u)),\qquad L_w(\ell_w(u),u)=L_w(h_w(u),u). \end{equation}
 We solve the last equality by bisection over $q\in[10^{-14},\alpha-10^{-14}]$. The resulting rule has conditional size $q+(\alpha-q)=\alpha$ by construction. Larger values of $u$ favor the second alternative and shift rejection probability toward the right tail.
 
-We execute Algorithm~\ref{alg:smd} for $K=1{,}000$ iterations with $N=512$ independent draws per alternative per iteration, $\eta=\sqrt{2\log(2)/K}$, and random seed $20261102$. We evaluate power separately by integrating the conditional rejection probability with 320-node Gauss--Hermite quadrature. Doubling the quadrature order from 160 to 320 changes the computed iteration-specific powers by less than $10^{-12}$. These are results from one simulation run, rather than averages across repeated training runs. OpenAI Codex assisted in designing and implementing this numerical illustration, running the computations, and drafting their interpretation; the author reviewed and verified the code and results. The accompanying source records the implemented procedure and all simulation settings.
+We set the target excess regret to $\epsilon=0.02$, the failure probability to $\delta=0.05$, and the number of draws per alternative per iteration to $N=512$. Equation~\eqref{eq:iterations}, with $I=2$, then selects $K=4{,}251$ and $\eta=0.01806$. Under exact conditional best responses, Proposition~\ref{prop:bounds} gives probability at least $0.95$ that the average test's maximum grid regret is at most $V_I+0.02$. This guarantee concerns the stochastic mirror-descent updates; it does not cover numerical error in evaluating best responses. We evaluate power by integrating the conditional rejection probability with 320-node Gauss--Hermite quadrature. Doubling the quadrature order from 160 to 320 changes computed iteration-specific powers by less than $10^{-12}$. The reported values come from one simulation run, rather than averages across repeated training runs, and use seed $20261102$. The accompanying source records the implemented procedure and all simulation settings.
 
 \begin{table}[t]
 \centering
@@ -151,7 +152,7 @@ We execute Algorithm~\ref{alg:smd} for $K=1{,}000$ iterations with $N=512$ indep
 \caption{Conditional tail allocation. Left-tail null rejection probabilities for the initial and final individual best responses are compared with the equal-tail test. The returned test averages all iterates.}\label{fig:tails}
 \end{figure}
 
-Table~\ref{tab:example} shows that conditioning improves power at both alternatives relative to the equal-tail test. Figure~\ref{fig:tails} shows how the conditioning statistic shifts rejection probability between tails. Subsequent weight updates increase power at $\theta_1$ while sacrificing some power at $\theta_2$, reducing the largest regret. After 1,000 iterations, maximum regret is $0.0783$, compared with $0.0819$ initially and $0.1228$ for the equal-tail test. Figure~\ref{fig:example} reports a numerical dual lower bound of $0.0769$, leaving a numerical gap of $0.0014$. This diagnostic concerns the chosen grid and numerical best responses; it is not a uniform bound over unexamined alternatives.
+Table~\ref{tab:example} shows that conditioning improves power at both alternatives relative to the equal-tail test. Figure~\ref{fig:tails} shows how the conditioning statistic shifts rejection probability between tails. Subsequent weight updates increase power at $\theta_1$ while sacrificing some power at $\theta_2$, reducing the largest regret. After $4{,}251$ iterations, maximum regret is $0.0776$, compared with $0.0819$ initially and $0.1228$ for the equal-tail test. Figure~\ref{fig:example} reports a numerical dual lower bound of $0.0769$, leaving a numerical gap of $0.00065$. This diagnostic concerns the chosen grid and numerical best responses; it is not a uniform bound over unexamined alternatives. The theoretical tolerance is an excess over $V_I$, so it does not assert that the achieved maximum regret itself is below $0.02$.
 
 \section{Conclusion}
 
@@ -159,7 +160,7 @@ Conditional similarity allows us to shift the numerical search from null distrib
 
 \section*{Data and code availability}
 
-We use simulated data. The reproducible Python package, as well as instructions, are available in the public GitHub replication repository: \url{https://github.com/aaf101/SMD-for-Conditional-Similarity}.
+We use simulated data. The reproducible Python package, as well as instructions, are available in the public GitHub replication repository at version 1.1.0: \url{https://github.com/aaf101/SMD-for-Conditional-Similarity/tree/v1.1.0}.
 
 \section*{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
 
@@ -177,10 +178,6 @@ Linearity of power proves \eqref{eq:deterministic}.
 For simulated updates, $\widehat G_{k,i}\in[-1,1]$. The same inequality, now with range length two, gives, simultaneously for all $i$,
 \begin{equation}\label{eq:noise} \frac1K\sum_k(r_{k,i}-w_k^\top r_k)\le\frac{\log I}{\eta K}+\frac\eta2+\frac1K\sum_k\Delta_{k,i}-\frac1K\sum_kw_k^\top\Delta_k, \end{equation}
 where $\Delta_{k,i}=\widehat G_{k,i}-G_i(w_k)$. Conditional Hoeffding bounds and iteration over the simulation history imply $\Pr(K^{-1}\sum_k\Delta_{k,i}>x)\le \exp(-2NKx^2)$. The same bound holds for $-K^{-1}\sum_kw_k^\top\Delta_k$: conditional independence gives squared summand ranges totaling $\sum_iw_{k,i}^2/N\le1/N$ at each iteration. A union bound over these $I+1$ deviations, with $x=\sqrt{\log((I+1)/\delta)/(2NK)}$, bounds the two noise terms in \eqref{eq:noise} by $2x$. Using $w_k^\top r_k\le V_I$ and linearity proves \eqref{eq:stochastic}.
-
-\subsection{Proof of Corollary \ref{cor:grid}}
-For every $[0,1]$-valued test, $|\E_\theta\varphi-\E_{\theta'}\varphi|\le\TV(P_\theta,P_{\theta'})$. Taking suprema gives the same bound for $|b(\theta)-b(\theta')|$. Regret therefore changes by at most twice total variation. Approximation by the grid and $V_I\le V_\Theta$ give \eqref{eq:continuum}.
-
 
 \bibliographystyle{apalike}
 \bibliography{references}

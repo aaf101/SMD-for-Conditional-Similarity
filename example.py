@@ -88,7 +88,7 @@ def main():
     assert dual[-1] <= worst[-1] + 1e-6
 
     with (OUT / "example_table.csv").open("w", newline="") as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, lineterminator="\n")
         writer.writerow(["test", "conditional_size", "power_1", "power_2", "max_regret"])
         for name, power in rows:
             writer.writerow([name, ALPHA, *power, max(ENVELOPE-power)])

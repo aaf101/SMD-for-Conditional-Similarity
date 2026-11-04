@@ -41,7 +41,7 @@ We instead impose conditional similarity within every best response. This remove
 
 For a finite alternative grid, we combine conditional Neyman--Pearson best responses with exponential weight updates, the latter of which help preserve the geometry of the probability simplex. Averaging preserves exact conditional similarity and yields explicit regret bounds for exact and simulated power calculations.
 
-Placing this in existing literature on conditionally similar tests, \citet{andrews2016conditional} studies minimax regret within a class of conditional linear combination tests, while \cite{chernozhukov2009admissible} and later \citet{olea2020admissible} characterize admissible similar tests. We optimize over the full conditionally similar class here. Furthermore, we connect to existing literature such as \cite{andrews2006optimal} that seeks to understand the power envelope for an invariant similar class exactly in the Gaussian example that we consider.
+The contribution of this work lies in the conditionally similar testing literature. \citet{andrews2016conditional} studies minimax regret within a class of conditional linear combination tests, while \cite{chernozhukov2009admissible} and later \citet{olea2020admissible} characterize admissible similar tests. Not yet established in the literature is how to compute minimax-regret optimal tests, which is the main contribution of this work, as we optimize over the full conditionally similar class here. Furthermore, we connect to existing literature such as \cite{andrews2006optimal} that seeks to understand the power envelope for an invariant similar class exactly in the Gaussian example that we consider.
 
 \section{Setup and Algorithm}
 \subsection{Testing problem}
@@ -68,7 +68,7 @@ The weights $w$ are optimization variables for worst-case regret. Thus each best
 \begin{equation}\label{eq:ratio} L_w(s,u)=\frac{g_w(s,u)}{f_0(s)}=\sum_{i=1}^I w_i f_U(u;\tau_i)\exp\!\left(\frac{m_i s}{\sigma_S^2}-\frac{m_i^2}{2\sigma_S^2}\right), \end{equation}
 where $m_i=m(\theta_i)$, $\tau_i=\tau(\theta_i)$, and $f_U(\cdot;\tau_i)$ is the $N(\tau_i,\sigma_U^2)$ density. Specifically, $\varphi_w=\mathbf1\{L_w>c_w(u)\}+\gamma_w(u)\mathbf1\{L_w=c_w(u)\}$, with threshold and boundary randomization chosen to satisfy \eqref{eq:class}. For a single alternative, the optimal rule is one-sided in $S$, giving
 \begin{equation}\label{eq:envelope} b_i=\Phi\!\left(\Phi^{-1}(\alpha)+|m_i|/\sigma_S\right), \end{equation}
-where $\Phi$ is the standard normal distribution function. When $m_i=0$, the envelope equals $\alpha$.
+where $\Phi$ is the standard normal CDF. When $m_i=0$, the envelope equals $\alpha$.
 
 The function $F(w)=\sup_{\varphi\in\CS}\sum_iw_i(\E_{\theta_i}[\varphi]-b_i)$ is convex, with subgradient $G_i(w)=\E_{\theta_i}[\varphi_w]-b_i$. Negative-entropy mirror descent thus increases weights in proportion to estimated regret (see Section 4.2 of \cite{bubeck2015convex}, as well as \cite{freund1999adaptive}, after which this algorithm is modeled). Starting from $w_{1,i}=1/I$, at iteration $k$ we compute $\varphi_k=\varphi_{w_k}$ and set
 \begin{equation}\label{eq:update} \widehat p_{k,i}=\frac1N\sum_{n=1}^N\varphi_k(Y_{k,i,n}),\qquad \widehat G_{k,i}=\widehat p_{k,i}-b_i,\qquad w_{k+1,i}=\frac{w_{k,i}\exp(-\eta\widehat G_{k,i})}{\sum_jw_{k,j}\exp(-\eta\widehat G_{k,j})}. \end{equation}
@@ -127,7 +127,7 @@ For these two alternatives, the likelihood ratio in \eqref{eq:ratio} is strictly
 \begin{equation}\label{eq:tailallocation} \ell_w(u)=\Phi^{-1}(q_w(u)),\qquad h_w(u)=\Phi^{-1}(1-\alpha+q_w(u)),\qquad L_w(\ell_w(u),u)=L_w(h_w(u),u). \end{equation}
 We solve the last equality by bisection over $q\in[10^{-14},\alpha-10^{-14}]$. The resulting rule has conditional size $q+(\alpha-q)=\alpha$ by construction. Larger values of $u$ favor the second alternative and shift rejection probability toward the right tail.
 
-We set the target excess regret to $\epsilon=0.02$, the failure probability to $\delta=0.05$, and the number of draws per alternative per iteration to $N=512$. Equation~\eqref{eq:iterations}, with $I=2$, then selects $K=4{,}251$ and $\eta=0.01806$. Under exact conditional best responses, Proposition~\ref{prop:bounds} gives probability at least $0.95$ that the average test's maximum grid regret is at most $V_I+0.02$. This guarantee concerns the SMD updates; it does not cover numerical error in evaluating best responses. We evaluate power by integrating the conditional rejection probability with 320-node Gauss--Hermite quadrature. Doubling the quadrature order from 160 to 320 changes computed iteration-specific powers by less than $10^{-12}$, suggesting numerical error is very low here. The reported values then come from one simulation run.
+We set the target excess regret to $\epsilon=0.02$, the failure probability to $\delta=0.05$, and the number of draws per alternative per iteration to $N=512$. Equation~\eqref{eq:iterations}, with $I=2$, then selects $K=4{,}251$ and $\eta=0.01806$. Under exact conditional best responses, Proposition~\ref{prop:bounds} gives probability at least $0.95$ that the average test's maximum grid regret is at most $V_I+0.02$. We evaluate power by integrating the conditional rejection probability with 320-node Gauss--Hermite quadrature. Doubling the quadrature order from 160 to 320 changes computed iteration-specific powers by less than $10^{-12}$, suggesting numerical error is very low here. The reported values then come from one simulation run.
 
 \begin{table}[t]
 \centering
@@ -152,7 +152,7 @@ We set the target excess regret to $\epsilon=0.02$, the failure probability to $
 \caption{Conditional tail allocation. Left-tail null rejection probabilities for the initial and final individual best responses are compared with the equal-tail test.}\label{fig:tails}
 \end{figure}
 
-Table~\ref{tab:example} shows that conditioning improves power at both alternatives relative to the equal-tail test. Figure~\ref{fig:tails} shows how the conditioning statistic shifts rejection probability between tails. Subsequent weight updates increase power at $\theta_1$ while sacrificing some power at $\theta_2$, reducing the largest regret. After $4{,}251$ iterations, maximum regret is $0.0776$, compared with $0.0819$ initially and $0.1228$ for the equal-tail test. Figure~\ref{fig:example} reports a numerical dual lower bound of $0.0769$, leaving a numerical gap of $0.00065$. The small distance between the initial best response and the output of Algorithm \ref{alg:smd} suggests the example here could benefit from early stopping, but recall that Proposition \ref{prop:bounds} is only a worst-case guarantee. Furthermore, monotonicity in average-test maximum regret is not always guaranteed, and in fact between the first and second iterations, regret goes up in our examples. The dual lower bound therefore only acts as a guide on the maximum amount by which minimax regret can be reduced.
+Table~\ref{tab:example} shows that conditioning improves power at both alternatives relative to the equal-tail test. Figure~\ref{fig:tails} shows how the conditioning statistic shifts rejection probability between tails. Subsequent weight updates increase power at $\theta_1$ while sacrificing some power at $\theta_2$, reducing the largest regret. After $4{,}251$ iterations, maximum regret is $0.0776$, compared with $0.0819$ initially and $0.1228$ for the equal-tail test. Figure~\ref{fig:example} reports a numerical dual lower bound of $0.0769$, leaving a numerical gap of $0.00065$. The small distance between the initial best response and the output of Algorithm \ref{alg:smd} suggests the example here could benefit from early stopping, but recall that Proposition \ref{prop:bounds} is only a worst-case guarantee. Furthermore, monotonicity in average-test maximum regret is not always guaranteed, and in fact between the first and second iterations, regret goes up in our example. The dual lower bound therefore only acts as a guide on the maximum amount by which minimax regret can be reduced.
 
 \section{Conclusion}
 
@@ -160,7 +160,7 @@ Conditional similarity allows us to shift the numerical search from null distrib
 
 \section*{Data and code availability}
 
-We use simulated data. The reproducible Python package, as well as instructions, are available in the public GitHub replication repository at version 1.1.0: \url{https://github.com/aaf101/SMD-for-Conditional-Similarity/tree/v1.1.0}.
+We use simulated data. The reproducible Python package, as well as instructions, are available at \url{https://github.com/aaf101/SMD-for-Conditional-Similarity}.
 
 \section*{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
 
@@ -171,7 +171,7 @@ During the preparation of this work, the author used GPT-6 to help with the writ
 
 \subsection{Proof of Proposition \ref{prop:bounds}}
 
-Write $r_{k,i}=\Reg(\varphi_k,\theta_i)\in[0,1]$. Best-response optimality gives $w_k^\top r_k=\inf_{\varphi\in\CS}\sum_iw_{k,i}\Reg(\varphi,\theta_i)\le V_I$. The exponential-weights inequality for rewards in $[0,1]$ (Theorem 2.2 of \cite{cesa2006prediction}) yields
+This proof follows a standard Hedge derivation. Write $r_{k,i}=\Reg(\varphi_k,\theta_i)\in[0,1]$. Best-response optimality gives $w_k^\top r_k=\inf_{\varphi\in\CS}\sum_iw_{k,i}\Reg(\varphi,\theta_i)\le V_I$. The exponential-weights inequality for rewards in $[0,1]$ (Theorem 2.2 of \cite{cesa2006prediction}) yields
 \begin{equation}\label{eq:ew} \max_i\frac1K\sum_kr_{k,i}\le\frac1K\sum_kw_k^\top r_k+\frac{\log I}{\eta K}+\frac\eta8. \end{equation}
 Linearity of power proves \eqref{eq:deterministic}.
 

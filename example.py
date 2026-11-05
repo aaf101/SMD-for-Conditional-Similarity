@@ -112,9 +112,18 @@ def main(epsilon, delta, N, seed, out):
         writer.writerow(["test", "conditional_size", "power_1", "power_2", "max_regret"])
         for name, power in rows:
             writer.writerow([name, ALPHA, *power, max(ENVELOPE-power)])
-    table = [r"\begin{tabular}{lrrrr}", r"\toprule", r"Test & Size & Power at $\theta_1$ & Power at $\theta_2$ & Max. regret \\", r"\midrule"]
+    table = [
+        r"\begin{tabular}{lrrr}",
+        r"\toprule",
+        r"Test & Power at $\theta_1$ & Power at $\theta_2$ & Max. regret \\",
+        r"\midrule",
+    ]
     for name, power in rows:
-        table.append(f"{name} & {ALPHA:.3f} & {power[0]:.3f} & {power[1]:.3f} & {max(ENVELOPE-power):.3f}" + r" \\")
+        max_regret = max(ENVELOPE - power)
+        table.append(
+            f"{name} & {power[0]:.3f} & {power[1]:.3f} & {max_regret:.3f}"
+            + r" \\"
+        )
     table += [r"\bottomrule", r"\end{tabular}"]
     (out / "example_table.tex").write_text("\n".join(table) + "\n")
     np.savetxt(out / "example_history.csv", np.column_stack((np.arange(1,K+1),weights,p,average_power,worst,dual)), delimiter=",", header="iteration,w1,w2,power1,power2,average_power1,average_power2,max_regret,dual_lower", comments="")

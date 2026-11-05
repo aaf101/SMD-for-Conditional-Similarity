@@ -127,7 +127,7 @@ For these two alternatives, the likelihood ratio in \eqref{eq:ratio} is strictly
 \begin{equation}\label{eq:tailallocation} \ell_w(u)=\Phi^{-1}(q_w(u)),\qquad h_w(u)=\Phi^{-1}(1-\alpha+q_w(u)),\qquad L_w(\ell_w(u),u)=L_w(h_w(u),u). \end{equation}
 We solve the last equality by bisection over $q\in[10^{-14},\alpha-10^{-14}]$. The resulting rule has conditional size $q+(\alpha-q)=\alpha$ by construction. Larger values of $u$ favor the second alternative and shift rejection probability toward the right tail.
 
-We set the target excess regret to $\epsilon=0.02$, the failure probability to $\delta=0.05$, and the number of draws per alternative per iteration to $N=512$. Equation~\eqref{eq:iterations}, with $I=2$, then selects $K=4{,}251$ and $\eta=0.01806$. Under exact conditional best responses, Proposition~\ref{prop:bounds} gives probability at least $0.95$ that the average test's maximum grid regret is at most $V_I+0.02$. We evaluate power by integrating the conditional rejection probability with 320-node Gauss--Hermite quadrature. Doubling the quadrature order from 160 to 320 changes computed iteration-specific powers by less than $10^{-12}$, suggesting numerical error is very low here. The reported values then come from one simulation run.
+We set the target excess regret to $\epsilon=0.02$, the failure probability to $\delta=0.05$, and the number of draws per alternative per iteration to $N=512$. Equation~\eqref{eq:iterations}, with $I=2$, then selects $K=4{,}251$ and $\eta=0.01806$. Under exact conditional best responses, Proposition~\ref{prop:bounds} gives probability at least $0.95$ that the average test's maximum grid regret is at most $V_I+0.02$. We evaluate power by integrating the conditional rejection probability with 320-node Gauss--Hermite quadrature. Doubling the quadrature order from 160 to 320 changes computed iteration-specific powers by less than $10^{-12}$, indicating stable quadrature evaluations. This comparison does not bound bisection error in the conditional best responses. The reported values come from one simulation run.
 
 \begin{table}[t]
 \centering
@@ -143,7 +143,7 @@ We set the target excess regret to $\epsilon=0.02$, the failure probability to $
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.72\linewidth]{results/figure_1_convergence.pdf}
-\caption{Regret along the SMD iterations. We report the maximum regret of the average test and the running maximum of $w_k^\top r_k$, evaluated by numerical integration. With exact best responses and integration, the latter bounds $V_I$ from below. OpenAI Codex assisted in preparing the Python code used to generate this figure.}\label{fig:example}
+\caption{Regret along the SMD iterations. We report the maximum regret of the average test and the running maximum of $w_k^\top r_k$. Here $r_k$ has components $r_{k,i}=b_i-\E_{\theta_i}[\varphi_k]$, and powers are evaluated by numerical integration. With exact best responses and integration, the latter bounds $V_I$ from below. OpenAI Codex assisted in preparing the Python code used to generate this figure.}\label{fig:example}
 \end{figure}
 
 \begin{figure}[t]
@@ -152,7 +152,7 @@ We set the target excess regret to $\epsilon=0.02$, the failure probability to $
 \caption{Conditional tail allocation. Left-tail null rejection probabilities for the initial and final individual best responses are compared with the equal-tail test. OpenAI Codex assisted in preparing the Python code used to generate this figure.}\label{fig:tails}
 \end{figure}
 
-Table~\ref{tab:example} shows that conditioning improves power at both alternatives relative to the equal-tail test. Figure~\ref{fig:tails} shows how the conditioning statistic shifts rejection probability between tails. Subsequent weight updates increase power at $\theta_1$ while sacrificing some power at $\theta_2$, reducing the largest regret. After $4{,}251$ iterations, maximum regret is $0.0776$, compared with $0.0819$ initially and $0.1228$ for the equal-tail test. Figure~\ref{fig:example} reports a numerical dual lower bound of $0.0769$, leaving a numerical gap of $0.00065$. The small distance between the initial best response and the output of Algorithm \ref{alg:smd} suggests the example here could benefit from early stopping, but recall that Proposition \ref{prop:bounds} is only a worst-case guarantee. Furthermore, monotonicity in average-test maximum regret is not always guaranteed, and in fact between the first and second iterations, regret goes up in our example. The dual lower bound therefore only acts as a guide on the maximum amount by which minimax regret can be reduced.
+Table~\ref{tab:example} shows that conditioning improves power at both alternatives relative to the equal-tail test. Figure~\ref{fig:tails} shows how the conditioning statistic shifts rejection probability between tails. Subsequent weight updates increase power at $\theta_1$ while sacrificing some power at $\theta_2$, reducing the largest regret. After $4{,}251$ iterations, maximum regret is $0.0776$, compared with $0.0819$ initially and $0.1228$ for the equal-tail test. Figure~\ref{fig:example} reports a numerical dual lower bound of $0.0769$, leaving a numerical gap of $0.00065$. With exact best responses and power evaluations, achieved maximum regret minus the dual lower bound bounds excess regret above $V_I$. A sufficiently small gap can therefore justify early stopping. Our numerical gap does not account for bisection or quadrature error. Proposition~\ref{prop:bounds} concerns the prescribed iteration count. Maximum regret need not decrease monotonically; it increases between the first and second iterations here.
 
 \section{Conclusion}
 
@@ -160,7 +160,7 @@ Conditional similarity allows us to shift the numerical search from null distrib
 
 \section*{Data and code availability}
 
-We use simulated data. The reproducible Python package, as well as instructions, are available at \url{https://github.com/aaf101/SMD-for-Conditional-Similarity}.
+We use simulated data. The replication code, simulation results, and instructions are available in version 1.1.0 of the public GitHub repository \citep{aradillasReplication2026}: \url{https://github.com/aaf101/SMD-for-Conditional-Similarity/tree/v1.1.0}.
 
 \appendix
 \numberwithin{equation}{section}
